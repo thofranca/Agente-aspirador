@@ -31,8 +31,8 @@ robozin = Robot(config.start, config.sight_range)
 ambiente = Environment(config.map)
 metrica = Metrics()
 metrica.celulas_sujas_iniciais = ambiente.sujeira
-while len(robozin.visited) != (len(config.map) * len(config.map[0])):
-    robozin.varredura(ambiente, metrica)
+
+robozin.limpeza(ambiente, metrica)
 
 
     

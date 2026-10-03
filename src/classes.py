@@ -6,6 +6,8 @@ class Robot:
         self.visited = [start]
         self.sight_range = sight_range
         self.observados = {}
+        self.limpar = False
+
     @property
     def x(self):
         return self.__x
@@ -34,7 +36,7 @@ class Robot:
     #         if (self.x,self.y) not in self.visited and (self.x,self.y) not in ambiente.parede:
     #             break
             
-    def ver_sujeira(self, ambiente, metrica):
+    def aspirar(self, ambiente, metrica):
         if ambiente.map[self.x][self.y] == 1:
             print(f"Sujeira encontrada na posição ({self.x}, {self.y})")
             print("Aspirando...")
@@ -42,33 +44,51 @@ class Robot:
             metrica.aspiracoes += 1
             metrica.celulas_limpas += 1
 
-    # def visao(self, ambiente):
-    #     if self.sight_range != 0:
-    #         for i in range(-self.sight_range,self.sight_range+1):
-    #             for j in range(-self.sight_range,self.sight_range+1):
-    #                 self.observados[(self.x+i,self.y+j)] = ambiente.map[self.x+i][self.y+j]
-               
-                    
+    def visao(self, ambiente):
+        for i in range(-self.sight_range,self.sight_range+1):
+            for j in range(-self.sight_range,self.sight_range+1):
+                n_x = self.x+i
+                n_y = self.y+j
+                if 0 <= n_x < len(ambiente.map) and 0 <= n_y < len(ambiente.map[0]):
+                    if (n_x,n_y) not in self.observados:
+                        self.observados[(n_x, n_y)] = ambiente.map[n_x][n_y]
+                
 
-    def varredura(self, ambiente, metrica):
-        
+    def limpeza(self, ambiente, metrica):
+        if self.sight_range != 0:
+            while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
+                self.varredura(ambiente,metrica)
+        else:
+            self.varredura(ambiente,metrica)
+            
+            
+
+    def varredura(self,ambiente,metrica):      
         if self.direction is None:
             self.direction = (1,1)
-            
+            self.visao(ambiente)
+
         if self.move((self.direction[0],0)) not in ambiente.parede:
             self.x += self.direction[0]
+            print(f"Posição atual: ({self.x}, {self.y})")
+            self.visao(ambiente)
+            self.observados[(self.x,self.y)] = ambiente.map[self.x][self.y] if (self.x,self.y) not in self.observados else None
+            metrica.movimentos += 1
         else:
-            if self.move((0,self.direction[1])) not in ambiente.parede:
-                self.y += self.direction[1]
-                self.direction = (self.direction[0]*-1,self.direction[1])
-            elif self.move((0,self.direction[1]*-1)) not in ambiente.parede:
-                self.y -= self.direction[1]
-                self.direction = (self.direction[0]*-1,self.direction[1]*-1)
-                
-        print(f"Posição atual: ({self.x}, {self.y})")
-        self.ver_sujeira(ambiente, metrica)
-        self.visited.append((self.x,self.y)) if (self.x,self.y) not in self.visited else None
-        metrica.movimentos += 1
+            for i in range(self.sight_range+1):
+                if self.move((0,self.direction[1])) not in ambiente.parede:
+                    self.y += self.direction[1]
+                elif self.move((0,self.direction[1]*-1)) not in ambiente.parede:
+                    self.y -= self.direction[1]
+                    self.direction = (self.direction[0],self.direction[1]*-1)
+                else:
+                    break 
+            
+                print(f"Posição atual: ({self.x}, {self.y})")
+                self.visao(ambiente)
+                self.visited.append((self.x,self.y)) if (self.x,self.y) not in self.visited else None
+                metrica.movimentos += 1
+            self.direction = (self.direction[0]*-1,self.direction[1])
         
 class Environment:
     def __init__(self, map):
