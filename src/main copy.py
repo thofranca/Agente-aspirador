@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from classes import Metrics
 import sys
 import parser
 from classes import *
@@ -26,22 +27,16 @@ if __name__ == '__main__':
     print("Seed:", config.random_seed)
     print("Máximo de passos:", config.max_steps)
 
-robozin = Robot(config.start[0],config.start[1])
+robozin = Robot(config.start, config.sight_range)
 ambiente = Environment(config.map)
-
+metrica = Metrics()
+metrica.celulas_sujas_iniciais = ambiente.sujeira
 while len(robozin.visited) != (len(config.map) * len(config.map[0])):
-    robozin.varredura(ambiente)
+    robozin.varredura(ambiente, metrica)
+
+
     
-# indo = True
-# subindo = True
-# numero_mov = 0
-# numero_asp = 0
-# qnt_suj = 0
-# inicio = config.start
-# posicao = inicio
-# visitado = [inicio] 
-# parede = []   
-# mapa = config.map
+
 # for i in range(len(mapa)):
 #     parede.append((i,-1))
 #     parede.append((i,len(mapa[0])))
@@ -108,9 +103,9 @@ while len(robozin.visited) != (len(config.map) * len(config.map[0])):
 #         break
    
 
-# print("número de movimentos realizados: ", numero_mov)
-# print("número de ações de aspiração realizadas: ", numero_asp)
-# print("número total de ações: ", numero_mov + numero_asp)
-# print("quantidade de células inicialmente sujas: ", qnt_suj)
-# print("quantidade de células efetivamente limpas: ", qnt_suj)
-# print("quantidade de células sujas restantes: ", 0)
+print("número de movimentos realizados: ", metrica.movimentos)
+print("número de ações de aspiração realizadas: ", metrica.aspiracoes)
+print("número total de ações: ", metrica.total_acoes)
+print("quantidade de células inicialmente sujas: ", metrica.celulas_sujas_iniciais)
+print("quantidade de células efetivamente limpas: ", metrica.celulas_limpas)
+print("quantidade de células sujas restantes: ", metrica.celulas_sujas_restantes)
