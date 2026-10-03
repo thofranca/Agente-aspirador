@@ -2,6 +2,7 @@
 
 import sys
 import parser
+from classes import *
 
 
 if __name__ == '__main__':
@@ -25,85 +26,91 @@ if __name__ == '__main__':
     print("Seed:", config.random_seed)
     print("Máximo de passos:", config.max_steps)
 
-indo = True
-subindo = True
-numero_mov = 0
-numero_asp = 0
-qnt_suj = 0
-inicio = config.start
-posicao = inicio
-visitado = [inicio] 
-parede = []   
-mapa = config.map
-for i in range(len(mapa)):
-    parede.append((i,-1))
-    parede.append((i,len(mapa[0])))
-for i in range(len(mapa[0])):
-    parede.append((-1,i))
-    parede.append((len(mapa),i))
+robozin = Robot(config.start[0],config.start[1])
+ambiente = Environment(config.map)
 
-while len(visitado) < (len(mapa) * len(mapa[0])):
-    print(posicao)
-    if (posicao[0],posicao[1]+1) not in visitado and (posicao[0],posicao[1]+1) not in parede:
-        indo = True
-        i = posicao[0]
-        j = posicao[1]+1
-        posicao = (i,j)
-        numero_mov += 1
-        visitado.append((i,j))
-        if mapa[i][j] == 1: 
-            print(f"Sujeira encontrada na posição ({i}, {j})")
-            print("Limpando...")
-            qnt_suj += 1
-            mapa[i][j] = 0
-            numero_asp += 1
-    elif (posicao[0],posicao[1]-1) not in visitado and (posicao[0],posicao[1]-1) not in parede:
-        indo = False
-        i = posicao[0]
-        j = posicao[1]-1
-        posicao = (i,j)
-        numero_mov += 1
-        visitado.append((i,j))
-        if mapa[i][j] == 1:
-            print(f"Sujeira encontrada na posição ({i}, {j})")
-            print("Limpando...")
-            qnt_suj += 1
-            mapa[i][j] = 0
-            numero_asp += 1
-    elif (posicao[0]+1,posicao[1]) not in visitado and (posicao[0]+1,posicao[1]) not in parede:
-        indo = True
-        i = posicao[0]+1
-        j = posicao[1]
-        posicao = (i,j)
-        numero_mov += 1
-        visitado.append((i,j))
-        if mapa[i][j] == 1: 
-            print(f"Sujeira encontrada na posição ({i}, {j})")
-            print("Limpando...")
-            qnt_suj += 1
-            mapa[i][j] = 0
-            numero_asp += 1
-    elif (posicao[0]-1,posicao[1]) not in visitado and (posicao[0]-1,posicao[1]) not in parede:
-        indo = False
-        i = posicao[0]-1
-        j = posicao[1]
-        posicao = (i,j)
-        numero_mov += 1
-        visitado.append((i,j))
-        if mapa[i][j] == 1:
-            print(f"Sujeira encontrada na posição ({i}, {j})")
-            print("Limpando...")
-            qnt_suj += 1
-            mapa[i][j] = 0
-            numero_asp += 1
-    else:
-        print("ESTAMOS ENCURRALADOS!!!!")
-        break
+while (robozin.x, robozin.y) != (len(config.map)-1,len(config.map[0])-1):
+    robozin.varredura(ambiente)
+    
+# indo = True
+# subindo = True
+# numero_mov = 0
+# numero_asp = 0
+# qnt_suj = 0
+# inicio = config.start
+# posicao = inicio
+# visitado = [inicio] 
+# parede = []   
+# mapa = config.map
+# for i in range(len(mapa)):
+#     parede.append((i,-1))
+#     parede.append((i,len(mapa[0])))
+# for i in range(len(mapa[0])):
+#     parede.append((-1,i))
+#     parede.append((len(mapa),i))
+
+# while len(visitado) < (len(mapa) * len(mapa[0])):
+#     print(posicao)
+#     if (posicao[0],posicao[1]+1) not in visitado and (posicao[0],posicao[1]+1) not in parede:
+#         indo = True
+#         i = posicao[0]
+#         j = posicao[1]+1
+#         posicao = (i,j)
+#         numero_mov += 1
+#         visitado.append((i,j))
+#         if mapa[i][j] == 1: 
+#             print(f"Sujeira encontrada na posição ({i}, {j})")
+#             print("Limpando...")
+#             qnt_suj += 1
+#             mapa[i][j] = 0
+#             numero_asp += 1
+#     elif (posicao[0],posicao[1]-1) not in visitado and (posicao[0],posicao[1]-1) not in parede:
+#         indo = False
+#         i = posicao[0]
+#         j = posicao[1]-1
+#         posicao = (i,j)
+#         numero_mov += 1
+#         visitado.append((i,j))
+#         if mapa[i][j] == 1:
+#             print(f"Sujeira encontrada na posição ({i}, {j})")
+#             print("Limpando...")
+#             qnt_suj += 1
+#             mapa[i][j] = 0
+#             numero_asp += 1
+#     elif (posicao[0]+1,posicao[1]) not in visitado and (posicao[0]+1,posicao[1]) not in parede:
+#         indo = True
+#         i = posicao[0]+1
+#         j = posicao[1]
+#         posicao = (i,j)
+#         numero_mov += 1
+#         visitado.append((i,j))
+#         if mapa[i][j] == 1: 
+#             print(f"Sujeira encontrada na posição ({i}, {j})")
+#             print("Limpando...")
+#             qnt_suj += 1
+#             mapa[i][j] = 0
+#             numero_asp += 1
+#     elif (posicao[0]-1,posicao[1]) not in visitado and (posicao[0]-1,posicao[1]) not in parede:
+#         indo = False
+#         i = posicao[0]-1
+#         j = posicao[1]
+#         posicao = (i,j)
+#         numero_mov += 1
+#         visitado.append((i,j))
+#         if mapa[i][j] == 1:
+#             print(f"Sujeira encontrada na posição ({i}, {j})")
+#             print("Limpando...")
+#             qnt_suj += 1
+#             mapa[i][j] = 0
+#             numero_asp += 1
+#     else:
+#         print("ESTAMOS ENCURRALADOS!!!!")
+#         break
    
 
-print("número de movimentos realizados: ", numero_mov)
-print("número de ações de aspiração realizadas: ", numero_asp)
-print("número total de ações: ", numero_mov + numero_asp)
-print("quantidade de células inicialmente sujas: ", qnt_suj)
-print("quantidade de células efetivamente limpas: ", qnt_suj)
-print("quantidade de células sujas restantes: ", 0)
+# print("número de movimentos realizados: ", numero_mov)
+# print("número de ações de aspiração realizadas: ", numero_asp)
+# print("número total de ações: ", numero_mov + numero_asp)
+# print("quantidade de células inicialmente sujas: ", qnt_suj)
+# print("quantidade de células efetivamente limpas: ", qnt_suj)
+# print("quantidade de células sujas restantes: ", 0)
