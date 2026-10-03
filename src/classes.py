@@ -5,6 +5,7 @@ class Robot:
         self.direction = None
         self.sight_range = sight_range
         self.observados = {}
+        self.sujos = []
         self.limpar = False
 
     @property
@@ -50,12 +51,14 @@ class Robot:
                 n_y = self.y+j
                 if 0 <= n_x < len(ambiente.map) and 0 <= n_y < len(ambiente.map[0]):
                     if (n_x,n_y) not in self.observados:
+                        self.sujos.append((n_x, n_y))
                         self.observados[(n_x, n_y)] = ambiente.map[n_x][n_y]
-                
+
 
     def limpeza(self, ambiente, metrica):
         while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
             self.varredura(ambiente,metrica)
+            
         limpar = True
         
     def movimento(self, ambiente, metrica):
@@ -85,7 +88,8 @@ class Robot:
                 metrica.movimentos += 1
                 self.movimento(ambiente,metrica)
             self.direction = (self.direction[0]*-1,self.direction[1])
-        
+        def visitar_celulas_sujas(self):
+
 class Environment:
     def __init__(self, map):
         self.map = map
