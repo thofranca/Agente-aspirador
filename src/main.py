@@ -24,3 +24,4 @@ if __name__ == '__main__':
     print("Probabilidade de sujeira:", config.cell_dirt_prob)
     print("Seed:", config.random_seed)
     print("Máximo de passos:", config.max_steps)
+

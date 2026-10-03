@@ -56,11 +56,7 @@ def _validate_map(map_: list[list[int]]) -> None:
                 )
 
 
-def _validate_position(
-    position: tuple[int, int],
-    map_: list[list[int]],
-    name: str,
-) -> None:
+def _validate_position(position: tuple[int, int], map_: list[list[int]], name: str) -> None:
     row, col = position
     height = len(map_)
     width = len(map_[0])
