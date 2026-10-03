@@ -4,25 +4,38 @@ class Robot:
         self.y = y
         self.visited = []
 
+    @property
+    def get_x(self):
+        return self.x
+    
+    @property 
+    def get_y(self):
+        return self.y
+    
     def move(self, direction):
         return (self.x+direction[0],self.y+direction[1])
 
     def varredura(self, ambiente):
-        if self.move((1,0)) not in ambiente.parede:
+        if self.move((1,0)) not in ambiente.parede and self.move((1,0)) not in self.visited:
             self.x += 1
-        elif self.move((0,1)) not in ambiente.parede:
+            self.visited.append((self.x,self.y))
+        elif self.move((-1,0)) not in ambiente.parede and self.move((-1,0)) not in self.visited:
             self.x -= 1
-        elif self.move((-1,0)) not in ambiente.parede:
+            self.visited.append((self.x,self.y))
+        elif self.move((0,1)) not in ambiente.parede and self.move((0,1)) not in self.visited:
             self.y += 1
-        elif self.move((0,-1)) not in ambiente.parede:
+            self.visited.append((self.x,self.y))
+        elif self.move((0,-1)) not in ambiente.parede and self.move((0,-1)) not in self.visited:
             self.y -= 1
+            self.visited.append((self.x,self.y))
         print(f"Posição atual: ({self.x}, {self.y})")
+        self.ver_sujeira(ambiente)
 
     def ver_sujeira(self, ambiente):
-        if ambiente[self.x][self.y] == 1:
+        if ambiente.map[self.x][self.y] == 1:
             print(f"Sujeira encontrada na posição ({self.x}, {self.y})")
             print("Aspirando...")
-            ambiente.sujeira[self.x][self.y] = 0
+            ambiente.map[self.x][self.y] = 0
 
 
     
