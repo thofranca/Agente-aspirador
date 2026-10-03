@@ -29,7 +29,7 @@ if __name__ == '__main__':
 robozin = Robot(config.start[0],config.start[1])
 ambiente = Environment(config.map)
 
-while (robozin.x, robozin.y) != (len(config.map)-1,len(config.map[0])-1):
+while len(robozin.visited) != (len(config.map) * len(config.map[0])):
     robozin.varredura(ambiente)
     
 # indo = True

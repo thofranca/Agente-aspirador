@@ -1,33 +1,62 @@
+import select
 class Robot:
     def __init__(self, x, y):
         self.__x = x
         self.__y = y
+        self.direction = None
         self.visited = []
 
     @property
-    def get_x(self):
+    def x(self):
         return self.__x
-    
+        
+    @x.setter
+    def x(self, val):
+        self.__x = val
+        
     @property 
-    def get_y(self):
+    def y(self):
         return self.__y
-    
+        
+    @y.setter
+    def y(self, val):
+        self.__y = val
+
     def move(self, direction):
-        return (self.get_x+direction[0],self.get_y+direction[1])
+        return (self.x+direction[0],self.y+direction[1])
+
+    # def pos_aleat(self,ambiente):
+    #     while True:
+    #         if self.x != 0:
+    #             self.x -= 1
+    #         elif self.y != 0:
+    #             self.y -= 1
+    #         if (self.x,self.y) not in self.visited and (self.x,self.y) not in ambiente.parede:
+    #             break
+            
 
     def varredura(self, ambiente):
-        if self.move((1,0)) not in ambiente.parede and self.move((1,0)) not in self.visited:
-            self.__x += 1
-            self.visited.append((self.get_x,self.get_y))
-        elif self.move((-1,0)) not in ambiente.parede and self.move((-1,0)) not in self.visited:
-            self.x -= 1
+        if self.direction is None:
             self.visited.append((self.x,self.y))
-        elif self.move((0,1)) not in ambiente.parede and self.move((0,1)) not in self.visited:
-            self.y += 1
+            print(f"Posição atual: ({self.x}, {self.y})")
+            self.ver_sujeira(ambiente)
+            self.x += 1
+            self.direction = (1,1)
             self.visited.append((self.x,self.y))
-        elif self.move((0,-1)) not in ambiente.parede and self.move((0,-1)) not in self.visited:
-            self.y -= 1
-            self.visited.append((self.x,self.y))
+            
+        elif self.move((self.direction[0],0)) not in ambiente.parede:
+            self.x += self.direction[0]
+            self.visited.append((self.x,self.y)) if (self.x,self.y) not in self.visited else None
+        else:
+            if self.move((0,self.direction[1])) not in ambiente.parede:
+                self.y += self.direction[1]
+                self.direction = (self.direction[0]*-1,self.direction[1])
+                self.visited.append((self.x,self.y)) if (self.x,self.y) not in self.visited else None
+            elif self.move((0,self.direction[1]*-1)) not in ambiente.parede:
+                self.y -= self.direction[1]
+                self.direction = (self.direction[0]*-1,self.direction[1]*-1)
+                self.visited.append((self.x,self.y)) if (self.x,self.y) not in self.visited else None
+
         print(f"Posição atual: ({self.x}, {self.y})")
         self.ver_sujeira(ambiente)
 
@@ -36,8 +65,6 @@ class Robot:
             print(f"Sujeira encontrada na posição ({self.x}, {self.y})")
             print("Aspirando...")
             ambiente.map[self.x][self.y] = 0
-
-
     
 class Environment:
     def __init__(self, map):
