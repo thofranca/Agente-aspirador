@@ -1,24 +1,24 @@
 class Robot:
     def __init__(self, x, y):
-        self.x = x
-        self.y = y
+        self.__x = x
+        self.__y = y
         self.visited = []
 
     @property
     def get_x(self):
-        return self.x
+        return self.__x
     
     @property 
     def get_y(self):
-        return self.y
+        return self.__y
     
     def move(self, direction):
-        return (self.x+direction[0],self.y+direction[1])
+        return (self.get_x+direction[0],self.get_y+direction[1])
 
     def varredura(self, ambiente):
         if self.move((1,0)) not in ambiente.parede and self.move((1,0)) not in self.visited:
-            self.x += 1
-            self.visited.append((self.x,self.y))
+            self.__x += 1
+            self.visited.append((self.get_x,self.get_y))
         elif self.move((-1,0)) not in ambiente.parede and self.move((-1,0)) not in self.visited:
             self.x -= 1
             self.visited.append((self.x,self.y))
