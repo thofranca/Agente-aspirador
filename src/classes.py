@@ -57,10 +57,12 @@ class Robot:
 
 
 
-    def limpeza(self, ambiente, metrica):
+    def limpeza(self, ambiente, metrica,tipo):
         while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
             self.varredura(ambiente,metrica)
         self.limpar = True
+        self.visitar_celulas_sujas(ambiente, metrica, tipo)
+
         
     def movimento(self, ambiente, metrica):
         print(f"Posição atual: ({self.x}, {self.y})")
