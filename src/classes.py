@@ -118,33 +118,34 @@ class Robot:
             lista_sujos = []
             i = 0
             while self.sujos:
-                x_destino, y_destino = self.sujos[i]
 
-                distancia_x, distancia_y = abs(x_destino - self.x), abs(y_destino - self.y)
-                lista_sujos.append((distancia_x + distancia_y, (x_destino, y_destino)))
-                lista_sujos_ordenada = sorted(lista_sujos, key=lambda x: x[0])
-                
-                sujeira = lista_sujos_ordenada.pop(0)
-                self.sujos.pop(0)
-                sujeira_x, sujeira_y = sujeira[1]
-                while (self.x, self.y) != (sujeira_x, sujeira_y):
-                        if x_destino < self.x:
-                            self.x -= 1
-                            metrica.movimentos += 1
-                        elif x_destino > self.x:
-                            self.x += 1
-                            metrica.movimentos += 1
-                        elif y_destino < self.y:
-                            self.y -= 1
-                            metrica.movimentos += 1
-                        elif y_destino > self.y:
-                            self.y += 1 
-                            metrica.movimentos += 1
-                print(ambiente.map)
-                self.aspirar(ambiente, metrica)
-                print(ambiente.map)
-                lista_sujos = []
-        
+                for x_destino, y_destino in self.sujos:
+                    distancia_x, distancia_y = abs(x_destino - self.x), abs(y_destino - self.y)
+                    lista_sujos.append((distancia_x + distancia_y, (x_destino, y_destino)))
+                    lista_sujos_ordenada = sorted(lista_sujos, key=lambda x: x[0])
+                    
+                    sujeira = lista_sujos_ordenada[0]
+                    sujeira_x, sujeira_y = sujeira[1]
+                    self.sujos.remove((sujeira_x, sujeira_y))
+
+                    while (self.x, self.y) != (sujeira_x, sujeira_y):
+                            if x_destino < self.x:
+                                self.x -= 1
+                                metrica.movimentos += 1
+                            elif x_destino > self.x:
+                                self.x += 1
+                                metrica.movimentos += 1
+                            elif y_destino < self.y:
+                                self.y -= 1
+                                metrica.movimentos += 1
+                            elif y_destino > self.y:
+                                self.y += 1 
+                                metrica.movimentos += 1
+                    print(ambiente.map)
+                    self.aspirar(ambiente, metrica)
+                    print(ambiente.map)
+                    lista_sujos = []
+            
 class Environment:
     def __init__(self, map):
         self.map = map

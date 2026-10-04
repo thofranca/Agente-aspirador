@@ -32,7 +32,7 @@ ambiente = Environment(config.map)
 metrica = Metrics()
 metrica.celulas_sujas_iniciais = ambiente.sujeira
 
-robozin.limpeza(ambiente, metrica, "ordem")
+#robozin.limpeza(ambiente, metrica, "ordem")
 robozin.limpeza(ambiente, metrica, "proximidade")
     
 
