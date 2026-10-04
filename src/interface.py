@@ -171,7 +171,7 @@ atualizar_interface_sync(False)
 
 # Chama a função principal que faz o processo inteiro (mapeamento + limpeza)!
 # A interface vai se atualizar sozinha graças à interceptação acima.
-robozin.limpeza(ambiente, metrica, "ordem")
+robozin.limpeza(ambiente, metrica, "proximidade")
 
 # Quando terminar, fica num loop infinito para não fechar a janela direto
 while True:
