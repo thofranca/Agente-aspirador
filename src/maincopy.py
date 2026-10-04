@@ -32,10 +32,8 @@ ambiente = Environment(config.map)
 metrica = Metrics()
 metrica.celulas_sujas_iniciais = ambiente.sujeira
 
-robozin.limpeza(ambiente, metrica)
-
-robozin.visitar_celulas_sujas(ambiente, metrica,"ordem")
-robozin.visitar_celulas_sujas(ambiente, metrica,"proximidade")
+robozin.limpeza(ambiente, metrica, "ordem")
+robozin.limpeza(ambiente, metrica, "proximidade")
     
 
 # for i in range(len(mapa)):
