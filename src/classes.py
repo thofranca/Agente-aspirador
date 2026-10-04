@@ -65,7 +65,6 @@ class Robot:
     def movimento(self, ambiente, metrica):
         print(f"Posição atual: ({self.x}, {self.y})")
         self.visao(ambiente) if not self.limpar else None
-       
 
     def varredura(self,ambiente,metrica):      
         if self.direction is None:
