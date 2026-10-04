@@ -60,23 +60,15 @@ for i in range(len(ambiente.map)):
 
 clock = pygame.time.Clock()
 
-# Inicia a lógica básica
-robozin.visao(ambiente)
-robozin.aspirar(ambiente, metrica)
-
-rodando = True
-terminou = False
-ultimo_movimento = pygame.time.get_ticks()
-
-while rodando:
+# Define a função de desenho que será chamada a cada passo
+def atualizar_interface_sync(terminado=False):
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
-            rodando = False
+            pygame.quit()
+            sys.exit(0)
 
-    # Preenche o fundo não explorado
     tela.fill(COR_FUNDO)
 
-    # Desenhar o mapa
     for i in range(len(ambiente.map)):
         for j in range(len(ambiente.map[0])):
             retangulo = pygame.Rect(j * TAMANHO_CELULA, i * TAMANHO_CELULA, TAMANHO_CELULA, TAMANHO_CELULA)
@@ -87,11 +79,9 @@ while rodando:
                 
                 # Fundo da célula
                 if valor == 9:
-                    # Desenha Obstáculo com uma bordinha 3D
                     pygame.draw.rect(tela, COR_PAREDE, retangulo)
                     pygame.draw.rect(tela, (85, 95, 105), retangulo, 2)
                 else:
-                    # Desenha o Chão
                     pygame.draw.rect(tela, COR_CHAO, retangulo)
                     pygame.draw.rect(tela, COR_LINHA, retangulo, 1)
 
@@ -139,21 +129,51 @@ while rodando:
         tela.blit(img_texto, (LARGURA + 20, y_texto))
         y_texto += 35
 
-    if terminou:
+    if terminado:
         texto_fim = fonte_titulo.render("CONCLUÍDO!", True, (50, 255, 100))
         tela.blit(texto_fim, (LARGURA + 20, y_texto + 20))
 
     pygame.display.flip()
+    
+    # Pausa para animação
+    if not terminado:
+        time.sleep(0.25)
 
-    # Lógica de atualização usando tempo para não travar a janela
-    tempo_atual = pygame.time.get_ticks()
-    if not terminou and (tempo_atual - ultimo_movimento) > 150: # Atualiza a cada 150ms
-        if len(robozin.observados) < len(ambiente.map) * len(ambiente.map[0]):
-            robozin.varredura(ambiente, metrica)
-            ultimo_movimento = tempo_atual
-        else:
-            terminou = True
+# --- INÍCIO DA MÁGICA: INTERCEPTANDO OS MOVIMENTOS ---
+# Para que a interface rode mostrando cada passo de qualquer loop (seja
+# o while da limpeza ou os passos de movimento) sem precisarmos alterar a 
+# lógica lá no classes.py, nós interceptamos as propriedades do robô!
 
-    clock.tick(60)
+original_x_setter = Robot.x.fset
+original_y_setter = Robot.y.fset
+original_aspirar = Robot.aspirar
 
-pygame.quit()
+def novo_x_setter(self, val):
+    original_x_setter(self, val)
+    atualizar_interface_sync(False)
+
+def novo_y_setter(self, val):
+    original_y_setter(self, val)
+    atualizar_interface_sync(False)
+
+def novo_aspirar(self, ambiente, metrica):
+    original_aspirar(self, ambiente, metrica)
+    atualizar_interface_sync(False)
+
+# Aplicando os interceptadores
+Robot.x = property(Robot.x.fget, novo_x_setter)
+Robot.y = property(Robot.y.fget, novo_y_setter)
+Robot.aspirar = novo_aspirar
+# -----------------------------------------------------
+
+# Mostra o estado inicial antes de começar
+atualizar_interface_sync(False)
+
+# Chama a função principal que faz o processo inteiro (mapeamento + limpeza)!
+# A interface vai se atualizar sozinha graças à interceptação acima.
+robozin.limpeza(ambiente, metrica, "ordem")
+
+# Quando terminar, fica num loop infinito para não fechar a janela direto
+while True:
+    atualizar_interface_sync(True)
+    time.sleep(0.1)

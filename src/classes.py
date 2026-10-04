@@ -156,13 +156,14 @@ class Environment:
 
     @property 
     def parede(self):
-        map = self.map
-        for i in range(len(map)):
-            self.__parede.append((i,-1))
-            self.__parede.append((i,len(map[0])))
-        for i in range(len(map[0])):
-            self.__parede.append((-1,i))
-            self.__parede.append((len(map),i))
+        if not self.__parede:
+            map = self.map
+            for i in range(len(map)):
+                self.__parede.append((i,-1))
+                self.__parede.append((i,len(map[0])))
+            for i in range(len(map[0])):
+                self.__parede.append((-1,i))
+                self.__parede.append((len(map),i))
         return self.__parede
 
     @property
