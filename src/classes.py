@@ -51,15 +51,16 @@ class Robot:
                 n_y = self.y+j
                 if 0 <= n_x < len(ambiente.map) and 0 <= n_y < len(ambiente.map[0]):
                     if (n_x,n_y) not in self.observados:
-                        self.sujos.append((n_x, n_y))
                         self.observados[(n_x, n_y)] = ambiente.map[n_x][n_y]
+                        if ambiente.map[n_x][n_y] == 1:
+                            self.sujos.append((n_x, n_y))
+
 
 
     def limpeza(self, ambiente, metrica):
         while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
             self.varredura(ambiente,metrica)
-            
-        limpar = True
+        self.limpar = True
         
     def movimento(self, ambiente, metrica):
         print(f"Posição atual: ({self.x}, {self.y})")
@@ -88,8 +89,61 @@ class Robot:
                 metrica.movimentos += 1
                 self.movimento(ambiente,metrica)
             self.direction = (self.direction[0]*-1,self.direction[1])
-        def visitar_celulas_sujas(self):
 
+    def visitar_celulas_sujas(self,ambiente, metrica,tipo):
+        if tipo == "ordem":
+            print("LIMPANDO POR ORDEM")
+            for i in self.sujos:
+                x_destino, y_destino = i
+                while (self.x, self.y) != (x_destino, y_destino):
+                    if x_destino < self.x:
+                        self.x -= 1
+                        metrica.movimentos += 1
+                    elif x_destino > self.x:
+                        self.x += 1
+                        metrica.movimentos += 1
+                    elif y_destino < self.y:
+                        self.y -= 1
+                        metrica.movimentos += 1
+                    elif y_destino > self.y:
+                        self.y += 1 
+                        metrica.movimentos += 1
+                print(ambiente.map)
+                self.aspirar(ambiente, metrica)
+                print(ambiente.map)
+
+        elif tipo == "proximidade":
+            print("LIMPANDO POR PROXIMIDADE")
+            lista_sujos = []
+            i = 0
+            while self.sujos:
+                x_destino, y_destino = self.sujos[i]
+
+                distancia_x, distancia_y = abs(x_destino - self.x), abs(y_destino - self.y)
+                lista_sujos.append((distancia_x + distancia_y, (x_destino, y_destino)))
+                lista_sujos_ordenada = sorted(lista_sujos, key=lambda x: x[0])
+                
+                sujeira = lista_sujos_ordenada.pop(0)
+                self.sujos.pop(0)
+                sujeira_x, sujeira_y = sujeira[1]
+                while (self.x, self.y) != (sujeira_x, sujeira_y):
+                        if x_destino < self.x:
+                            self.x -= 1
+                            metrica.movimentos += 1
+                        elif x_destino > self.x:
+                            self.x += 1
+                            metrica.movimentos += 1
+                        elif y_destino < self.y:
+                            self.y -= 1
+                            metrica.movimentos += 1
+                        elif y_destino > self.y:
+                            self.y += 1 
+                            metrica.movimentos += 1
+                print(ambiente.map)
+                self.aspirar(ambiente, metrica)
+                print(ambiente.map)
+                lista_sujos = []
+        
 class Environment:
     def __init__(self, map):
         self.map = map
