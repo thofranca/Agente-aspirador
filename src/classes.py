@@ -1,5 +1,5 @@
 class Robot:
-    def __init__(self, start, sight_range):
+    def __init__(self, start, sight_range, cons_mov, cons_asp, estacao_loc=(0,0)):
         self.__x = start[0]
         self.__y = start[1]
         self.direction = None
@@ -7,6 +7,10 @@ class Robot:
         self.observados = {}
         self.sujos = []
         self.limpar = False
+        self.bateria = 100
+        self.consumo_mov = cons_mov
+        self.consumo_asp = cons_asp
+        self.estacao_loc = estacao_loc
 
     @property
     def x(self):
@@ -15,6 +19,7 @@ class Robot:
     @x.setter
     def x(self, val):
         self.__x = val
+        self.bateria -= self.consumo_mov
         
     @property 
     def y(self):
@@ -23,6 +28,7 @@ class Robot:
     @y.setter
     def y(self, val):
         self.__y = val
+        self.bateria -= self.consumo_mov
 
     def ver_move(self, direction):
         return (self.x+direction[0],self.y+direction[1])
@@ -41,6 +47,7 @@ class Robot:
             print(f"Sujeira encontrada na posição ({self.x}, {self.y})")
             print("Aspirando...")
             ambiente.map[self.x][self.y] = 0
+            self.bateria -= self.consumo_asp
             metrica.aspiracoes += 1
             metrica.celulas_limpas += 1
 
@@ -55,23 +62,27 @@ class Robot:
                         if ambiente.map[n_x][n_y] == 1:
                             self.sujos.append((n_x, n_y))
 
-
-
     def limpeza(self, ambiente, metrica,tipo):
         while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
-            self.varredura(ambiente,metrica)
+            if self.tem_bateria_suf():  
+                self.varredura(ambiente,metrica)
+            else:
+                self.ir_carregar(ambiente,metrica)
         self.limpar = True
         self.visitar_celulas_sujas(ambiente, metrica, tipo)
 
         
     def movimento(self, ambiente, metrica):
+        metrica.movimentos += 1
         print(f"Posição atual: ({self.x}, {self.y})")
         self.visao(ambiente) if not self.limpar else None
 
     def varredura(self,ambiente,metrica):      
         if self.direction is None:
             self.direction = (1,1)
-            self.movimento(ambiente,metrica)
+            print(f"Posição atual: ({self.x}, {self.y})")
+            self.visao(ambiente)
+        
         
         viu_parede_no_raio = False
         for i in range(1, self.sight_range + 1):
@@ -80,11 +91,14 @@ class Robot:
                 break
 
         if not viu_parede_no_raio:
+            if not self.tem_bateria_suf():
+                self.ir_carregar(ambiente, metrica)
             self.x += self.direction[0]
-            metrica.movimentos += 1
             self.movimento(ambiente,metrica)
         else:
             for i in range(self.sight_range+1):
+                if not self.tem_bateria_suf():
+                    self.ir_carregar(ambiente, metrica)
                 if self.ver_move((0,self.direction[1])) not in ambiente.parede:
                     self.y += self.direction[1]
                 elif self.ver_move((0,self.direction[1]*-1)) not in ambiente.parede:
@@ -92,31 +106,50 @@ class Robot:
                     self.direction = (self.direction[0],self.direction[1]*-1)
                 else:
                     break 
-                metrica.movimentos += 1
                 self.movimento(ambiente,metrica)
             self.direction = (self.direction[0]*-1,self.direction[1])
+
+    def menor_distancia(self, x_destino, y_destino):
+        return abs(x_destino - self.x) + abs(y_destino - self.y)
+
+    def tem_bateria_suf(self, aspirar=False):
+        custo_retorno = self.menor_distancia(self.estacao_loc[0], self.estacao_loc[1]) * self.consumo_mov
+        custo_extra = self.consumo_asp if aspirar else 0
+        if self.bateria >= (custo_retorno + custo_extra + 2 * self.consumo_mov):
+            return True
+        return False
+
+    def ir_carregar(self,ambiente,metrica):
+        x_inic,y_inic = (self.x,self.y)
+        x_destino, y_destino = self.estacao_loc
+        self.walk_to(x_destino,y_destino,ambiente,metrica, indo_carregar=True)
+        self.bateria = 100
+        self.walk_to(x_inic, y_inic, ambiente, metrica)
+    
+    def walk_to(self,x_destino,y_destino,ambiente,metrica, indo_carregar=False):
+        while (self.x, self.y) != (x_destino, y_destino):
+            if not indo_carregar and not self.tem_bateria_suf():
+                self.ir_carregar(ambiente, metrica)
+                
+            if x_destino < self.x:
+                self.x -= 1
+            elif x_destino > self.x:
+                self.x += 1
+            elif y_destino < self.y:
+                self.y -= 1
+            elif y_destino > self.y:
+                self.y += 1 
+            self.movimento(ambiente, metrica)
 
     def visitar_celulas_sujas(self,ambiente, metrica,tipo):
         if tipo == "ordem":
             print("LIMPANDO POR ORDEM")
             for i in self.sujos:
                 x_destino, y_destino = i
-                while (self.x, self.y) != (x_destino, y_destino):
-                    if x_destino < self.x:
-                        self.x -= 1
-                        metrica.movimentos += 1
-                    elif x_destino > self.x:
-                        self.x += 1
-                        metrica.movimentos += 1
-                    elif y_destino < self.y:
-                        self.y -= 1
-                        metrica.movimentos += 1
-                    elif y_destino > self.y:
-                        self.y += 1 
-                        metrica.movimentos += 1
-                print(ambiente.map)
+                self.walk_to(x_destino,y_destino,ambiente,metrica)
+                if not self.tem_bateria_suf(aspirar=True):
+                    self.ir_carregar(ambiente, metrica)
                 self.aspirar(ambiente, metrica)
-                print(ambiente.map)
 
         elif tipo == "proximidade":
             print("LIMPANDO POR PROXIMIDADE")
@@ -124,7 +157,7 @@ class Robot:
                 lista_sujos = []
                 
                 for x_destino, y_destino in self.sujos:
-                    distancia = abs(x_destino - self.x) + abs(y_destino - self.y)
+                    distancia = self.menor_distancia(x_destino, y_destino)
                     lista_sujos.append((distancia, (x_destino, y_destino)))
                 
                 lista_sujos_ordenada = sorted(lista_sujos, key=lambda x: x[0])
@@ -132,24 +165,10 @@ class Robot:
                 
                 sujeira_x, sujeira_y = sujeira_mais_proxima[1]
                 self.sujos.remove((sujeira_x, sujeira_y))
-
-                while (self.x, self.y) != (sujeira_x, sujeira_y):
-                        if sujeira_x < self.x:
-                            self.x -= 1
-                            metrica.movimentos += 1
-                        elif sujeira_x > self.x:
-                            self.x += 1
-                            metrica.movimentos += 1
-                        elif sujeira_y < self.y:
-                            self.y -= 1
-                            metrica.movimentos += 1
-                        elif sujeira_y > self.y:
-                            self.y += 1 
-                            metrica.movimentos += 1
-                
-                print(ambiente.map)
+                self.walk_to(sujeira_x,sujeira_y,ambiente,metrica)
+                if not self.tem_bateria_suf(aspirar=True):
+                    self.ir_carregar(ambiente, metrica)
                 self.aspirar(ambiente, metrica)
-                print(ambiente.map)
             
 class Environment:
     def __init__(self, map):

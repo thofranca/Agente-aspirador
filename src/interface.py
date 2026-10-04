@@ -11,7 +11,7 @@ if len(sys.argv) < 2:
 arquivo_entrada = sys.argv[1]
 config = parser.load_config(arquivo_entrada)
 
-robozin = Robot(config.start, config.sight_range)
+robozin = Robot(config.start, config.sight_range, config.charge_per_movement, config.charge_per_vacuum, config.power_station_loc)
 ambiente = Environment(config.map)
 metrica = Metrics()
 metrica.celulas_sujas_iniciais = ambiente.sujeira
@@ -92,6 +92,33 @@ def atualizar_interface_sync(terminado=False):
                         cy = retangulo.centery + oy
                         pygame.draw.circle(tela, COR_SUJEIRA, (cx, cy), raio)
 
+    # Desenhar a Base de Carregamento
+    ex, ey = robozin.estacao_loc
+    cx_base = int(ey * TAMANHO_CELULA + TAMANHO_CELULA / 2)
+    cy_base = int(ex * TAMANHO_CELULA + TAMANHO_CELULA / 2)
+    rect_estacao = pygame.Rect(ey * TAMANHO_CELULA + 5, ex * TAMANHO_CELULA + 5, TAMANHO_CELULA - 10, TAMANHO_CELULA - 10)
+    pygame.draw.rect(tela, (50, 100, 150), rect_estacao, border_radius=10)
+    pygame.draw.rect(tela, (100, 200, 255), rect_estacao, 2, border_radius=10)
+    # Símbolo de Raio na base
+    raio_points = [
+        (cx_base + 3, cy_base - 10),
+        (cx_base - 7, cy_base + 2),
+        (cx_base + 1, cy_base + 2),
+        (cx_base - 3, cy_base + 12),
+        (cx_base + 7, cy_base - 2),
+        (cx_base - 1, cy_base - 2)
+    ]
+    pygame.draw.polygon(tela, (255, 215, 0), raio_points)
+
+    # Cor da bateria do Robô
+    bateria_perc = min(100, max(0, robozin.bateria))
+    if bateria_perc > 50:
+        cor_luz = (0, 255, 120)  # Verde neon
+    elif bateria_perc > 20:
+        cor_luz = (255, 200, 0)  # Amarelo
+    else:
+        cor_luz = (255, 50, 50)  # Vermelho
+
     # Desenhar o Robô (estilo Roomba)
     cx = int(robozin.y * TAMANHO_CELULA + TAMANHO_CELULA / 2)
     cy = int(robozin.x * TAMANHO_CELULA + TAMANHO_CELULA / 2)
@@ -104,7 +131,7 @@ def atualizar_interface_sync(terminado=False):
     # Borda prata/cinza ao redor
     pygame.draw.circle(tela, (80, 80, 80), (cx, cy), raio_robo, 2)
     # Luz indicadora de energia no centro
-    pygame.draw.circle(tela, COR_ROBO_DETALHE, (cx, cy), 5)
+    pygame.draw.circle(tela, cor_luz, (cx, cy), 6)
 
     # ==========================
     # Desenhar o Painel (HUD)
@@ -129,9 +156,26 @@ def atualizar_interface_sync(terminado=False):
         tela.blit(img_texto, (LARGURA + 20, y_texto))
         y_texto += 35
 
+    # Barra de Bateria no HUD
+    y_bateria = y_texto + 10
+    tela.blit(fonte.render("Bateria:", True, COR_TEXTO), (LARGURA + 20, y_bateria))
+    
+    bar_width = PAINEL_LATERAL - 40
+    bar_height = 22
+    rect_bar_bg = pygame.Rect(LARGURA + 20, y_bateria + 30, bar_width, bar_height)
+    pygame.draw.rect(tela, (60, 60, 70), rect_bar_bg, border_radius=6)
+    
+    fill_width = int(bar_width * (bateria_perc / 100))
+    if fill_width > 0:
+        rect_bar_fg = pygame.Rect(LARGURA + 20, y_bateria + 30, fill_width, bar_height)
+        pygame.draw.rect(tela, cor_luz, rect_bar_fg, border_radius=6)
+        
+    bat_texto = fonte.render(f"{int(bateria_perc)}%", True, (20, 20, 20) if bateria_perc > 20 else (255,255,255))
+    tela.blit(bat_texto, (LARGURA + 20 + bar_width // 2 - bat_texto.get_width() // 2, y_bateria + 30))
+
     if terminado:
         texto_fim = fonte_titulo.render("CONCLUÍDO!", True, (50, 255, 100))
-        tela.blit(texto_fim, (LARGURA + 20, y_texto + 20))
+        tela.blit(texto_fim, (LARGURA + 20, y_bateria + 70))
 
     pygame.display.flip()
     
@@ -144,16 +188,11 @@ def atualizar_interface_sync(terminado=False):
 # o while da limpeza ou os passos de movimento) sem precisarmos alterar a 
 # lógica lá no classes.py, nós interceptamos as propriedades do robô!
 
-original_x_setter = Robot.x.fset
-original_y_setter = Robot.y.fset
+original_movimento = Robot.movimento
 original_aspirar = Robot.aspirar
 
-def novo_x_setter(self, val):
-    original_x_setter(self, val)
-    atualizar_interface_sync(False)
-
-def novo_y_setter(self, val):
-    original_y_setter(self, val)
+def novo_movimento(self, ambiente, metrica):
+    original_movimento(self, ambiente, metrica)
     atualizar_interface_sync(False)
 
 def novo_aspirar(self, ambiente, metrica):
@@ -161,8 +200,7 @@ def novo_aspirar(self, ambiente, metrica):
     atualizar_interface_sync(False)
 
 # Aplicando os interceptadores
-Robot.x = property(Robot.x.fget, novo_x_setter)
-Robot.y = property(Robot.y.fget, novo_y_setter)
+Robot.movimento = novo_movimento
 Robot.aspirar = novo_aspirar
 # -----------------------------------------------------
 
@@ -171,7 +209,7 @@ atualizar_interface_sync(False)
 
 # Chama a função principal que faz o processo inteiro (mapeamento + limpeza)!
 # A interface vai se atualizar sozinha graças à interceptação acima.
-robozin.limpeza(ambiente, metrica, "proximidade")
+robozin.limpeza(ambiente, metrica, "ordem")
 
 # Quando terminar, fica num loop infinito para não fechar a janela direto
 while True:
