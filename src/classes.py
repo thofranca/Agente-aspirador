@@ -1,5 +1,6 @@
+import random
 class Robot:
-    def __init__(self, start, sight_range, cons_mov, cons_asp, estacao_loc=(0,0)):
+    def __init__(self, start, sight_range, cons_mov, cons_asp, cell_dirt_prob, estacao_loc=(0,0)):
         self.__x = start[0]
         self.__y = start[1]
         self.direction = None
@@ -11,7 +12,7 @@ class Robot:
         self.consumo_mov = cons_mov
         self.consumo_asp = cons_asp
         self.estacao_loc = estacao_loc
-
+        self.probabilidade_sujeira = cell_dirt_prob
     @property
     def x(self):
         return self.__x
@@ -61,7 +62,10 @@ class Robot:
                         self.observados[(n_x, n_y)] = ambiente.map[n_x][n_y]
                         if ambiente.map[n_x][n_y] == 1:
                             self.sujos.append((n_x, n_y))
-
+                        if ambiente.map[n_x][n_y] == 9:
+                            if(n_x,n_y) not in ambiente.parede:
+                                ambiente.parede.append((n_x,n_y))
+                     
     def limpeza(self, ambiente, metrica,tipo):
         while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
             if self.tem_bateria_suf():  
@@ -82,8 +86,7 @@ class Robot:
             self.direction = (1,1)
             print(f"Posição atual: ({self.x}, {self.y})")
             self.visao(ambiente)
-        
-        
+    
         viu_parede_no_raio = False
         for i in range(1, self.sight_range + 1):
             if self.ver_move((self.direction[0] * i, 0)) in ambiente.parede:
@@ -120,7 +123,6 @@ class Robot:
         return False
 
     def ir_carregar(self,ambiente,metrica):
-        x_inic,y_inic = (self.x,self.y)
         x_destino, y_destino = self.estacao_loc
         self.walk_to(x_destino,y_destino,ambiente,metrica, indo_carregar=True)
         self.bateria = 100
@@ -132,13 +134,25 @@ class Robot:
                 if tipo == "proximidade":
                     return False
             if x_destino < self.x:
-                self.x -= 1
+                if self.pode_andar(ambiente, (self.x - 1, self.y)):
+                    self.x -= 1
+                else:
+                    self.desviar(ambiente, metrica, (-1, 0))
             elif x_destino > self.x:
-                self.x += 1
+                if self.pode_andar(ambiente, (self.x + 1, self.y)):
+                    self.x += 1
+                else:
+                    self.desviar(ambiente, metrica, (1, 0))
             elif y_destino < self.y:
-                self.y -= 1
+                if self.pode_andar(ambiente, (self.x, self.y - 1)):
+                    self.y -= 1
+                else:
+                    self.desviar(ambiente, metrica, (0, -1))
             elif y_destino > self.y:
-                self.y += 1 
+                if self.pode_andar(ambiente, (self.x, self.y + 1)):
+                    self.y += 1
+                else:
+                    self.desviar(ambiente, metrica, (0, 1))
             self.movimento(ambiente, metrica)
         return True
 
@@ -174,14 +188,44 @@ class Robot:
                     continue
                 self.aspirar(ambiente, metrica)
                 self.sujos.remove((sujeira_x, sujeira_y))
-            
+    def pode_andar(self, ambiente, destino):
+        x, y = destino
+        if destino in ambiente.parede:
+            print(f"Parede na frente!")
+            return False
+        
+        return True
+
+    def desviar(self, ambiente,direcao):
+        direcao_x, direcao_y = direcao
+        if direcao_x != 0:
+            if self.pode_andar(ambiente, (self.x, self.y + 1)):
+                self.y += 1
+                print("parede desviada")
+                return True
+            elif self.pode_andar(ambiente, (self.x, self.y - 1)):
+                self.y -= 1
+                print("parede desviada")
+                return True
+        elif direcao_y != 0:
+            if self.pode_andar(ambiente, (self.x + 1, self.y)):
+                self.x += 1
+                print("parede desviada")
+                return True
+            elif self.pode_andar(ambiente, (self.x - 1, self.y)):
+                self.x -= 1
+                print("parede desviada")
+                return True
+        return False
 class Environment:
-    def __init__(self, map):
+    def __init__(self, map,semente=None):
         self.map = map
         self.__sujeiras_inicio = 0
         self.__parede = []
         for i in self.map:
             self.__sujeiras_inicio += i.count(1)
+        if semente is not None: 
+            random.seed(semente)
 
     @property 
     def parede(self):
@@ -198,8 +242,18 @@ class Environment:
     @property
     def sujeira(self):
         return self.__sujeiras_inicio
-
     
+    def nova_sujeira(self,semente):
+        if random.random() < self.probabilidade_sujeira:    
+            while True:
+                x = random.randint(0, len(self.map) - 1)
+                y = random.randint(0, len(self.map[0]) - 1)
+                if self.map[x][y] == 0:
+                    self.map[x][y] = 1
+                    print(f"Nova sujeira gerada na posição ({x}, {y})")
+                    break
+
+            
 class Metrics:
     def __init__(self):
         self.__movimentos = 0
