@@ -231,8 +231,9 @@ class Robot:
             print("maximo de movimentos atingido")
             return True
         return False
+    
 class Environment:
-    def __init__(self, map, cell_dirt_prob = None, semente=None):
+    def __init__(self, map, cell_dirt_prob = None, semente = None):
         self.map = map
         self.__sujeiras_inicio = 0
         self.__parede = []
@@ -260,14 +261,15 @@ class Environment:
         return self.__sujeiras_inicio
     
     def nova_sujeira(self):
-        if random.random() < self.probabilidade_sujeira:    
-            while True:
-                x = random.randint(0, len(self.map) - 1)
-                y = random.randint(0, len(self.map[0]) - 1)
-                if self.map[x][y] == 0:
-                    self.map[x][y] = 1
-                    print(f"Nova sujeira gerada na posição ({x}, {y})")
-                    break
+        if self.probabilidade_sujeira is not None:
+            if random.random() < self.probabilidade_sujeira:    
+                while True:
+                    x = random.randint(0, len(self.map) - 1)
+                    y = random.randint(0, len(self.map[0]) - 1)
+                    if self.map[x][y] == 0:
+                        self.map[x][y] = 1
+                        print(f"Nova sujeira gerada na posição ({x}, {y})")
+                        break
 
             
 class Metrics:
