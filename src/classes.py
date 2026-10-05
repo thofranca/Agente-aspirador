@@ -1,6 +1,6 @@
 import random
 class Robot:
-    def __init__(self, start, sight_range, cons_mov, cons_asp, cell_dirt_prob, estacao_loc=(0,0)):
+    def __init__(self, start, sight_range, cons_mov, cons_asp, estacao_loc=(0,0), max_steps=None):
         self.__x = start[0]
         self.__y = start[1]
         self.direction = None
@@ -12,7 +12,7 @@ class Robot:
         self.consumo_mov = cons_mov
         self.consumo_asp = cons_asp
         self.estacao_loc = estacao_loc
-        self.probabilidade_sujeira = cell_dirt_prob
+        self.maximo_movimentos = max_steps
     @property
     def x(self):
         return self.__x
@@ -44,6 +44,8 @@ class Robot:
     #             break
             
     def aspirar(self, ambiente, metrica):
+        if self.maximo_steps(metrica):
+            return False
         if ambiente.map[self.x][self.y] == 1:
             print(f"Sujeira encontrada na posição ({self.x}, {self.y})")
             print("Aspirando...")
@@ -68,6 +70,8 @@ class Robot:
                      
     def limpeza(self, ambiente, metrica,tipo):
         while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
+            if self.maximo_steps(metrica):
+                return False
             if self.tem_bateria_suf():  
                 self.varredura(ambiente,metrica)
             else:
@@ -77,10 +81,13 @@ class Robot:
 
         
     def movimento(self, ambiente, metrica):
+        if self.maximo_steps(metrica):
+             return False
         metrica.movimentos += 1
         print(f"Posição atual: ({self.x}, {self.y})")
         self.visao(ambiente) if not self.limpar else None
-
+        ambiente.nova_sujeira()
+        return True
     def varredura(self,ambiente,metrica):      
         if self.direction is None:
             self.direction = (1,1)
@@ -137,23 +144,24 @@ class Robot:
                 if self.pode_andar(ambiente, (self.x - 1, self.y)):
                     self.x -= 1
                 else:
-                    self.desviar(ambiente, metrica, (-1, 0))
+                    self.desviar(ambiente, (-1, 0))
             elif x_destino > self.x:
                 if self.pode_andar(ambiente, (self.x + 1, self.y)):
                     self.x += 1
                 else:
-                    self.desviar(ambiente, metrica, (1, 0))
+                    self.desviar(ambiente, (1, 0))
             elif y_destino < self.y:
                 if self.pode_andar(ambiente, (self.x, self.y - 1)):
                     self.y -= 1
                 else:
-                    self.desviar(ambiente, metrica, (0, -1))
+                    self.desviar(ambiente, (0, -1))
             elif y_destino > self.y:
                 if self.pode_andar(ambiente, (self.x, self.y + 1)):
                     self.y += 1
                 else:
-                    self.desviar(ambiente, metrica, (0, 1))
-            self.movimento(ambiente, metrica)
+                    self.desviar(ambiente, (0, 1))
+            if not self.movimento(ambiente, metrica):
+                return False
         return True
 
     def visitar_celulas_sujas(self,ambiente, metrica,tipo):
@@ -217,11 +225,19 @@ class Robot:
                 print("parede desviada")
                 return True
         return False
+
+    def maximo_steps(self,metrica):
+        if metrica.total_acoes >= self.maximo_movimentos:
+            print("maximo de movimentos atingido")
+            return True
+        return False
 class Environment:
-    def __init__(self, map,semente=None):
+    def __init__(self, map, cell_dirt_prob = None, semente=None):
         self.map = map
         self.__sujeiras_inicio = 0
         self.__parede = []
+        self.probabilidade_sujeira = cell_dirt_prob
+
         for i in self.map:
             self.__sujeiras_inicio += i.count(1)
         if semente is not None: 
@@ -243,7 +259,7 @@ class Environment:
     def sujeira(self):
         return self.__sujeiras_inicio
     
-    def nova_sujeira(self,semente):
+    def nova_sujeira(self):
         if random.random() < self.probabilidade_sujeira:    
             while True:
                 x = random.randint(0, len(self.map) - 1)
@@ -281,8 +297,9 @@ class Metrics:
     
     @property
     def total_acoes(self):
-        return self.movimentos + self.aspiracoes
-    
+        self.__total_acoes = self.movimentos + self.aspiracoes
+        return self.__total_acoes
+
     @property
     def celulas_sujas_iniciais(self):
         return self.__celulas_sujas_iniciais

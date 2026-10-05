@@ -27,8 +27,8 @@ if __name__ == '__main__':
     print("Seed:", config.random_seed)
     print("Máximo de passos:", config.max_steps)
 
-robozin = Robot(config.start, config.sight_range, config.charge_per_movement, config.charge_per_vacuum, config.power_station_loc)
-ambiente = Environment(config.map)
+robozin = Robot(config.start, config.sight_range, config.charge_per_movement, config.charge_per_vacuum, config.power_station_loc, config.max_steps)
+ambiente = Environment(config.map, config.cell_dirt_prob, config.random_seed)
 metrica = Metrics()
 metrica.celulas_sujas_iniciais = ambiente.sujeira
 
