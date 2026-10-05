@@ -11,8 +11,8 @@ if len(sys.argv) < 2:
 arquivo_entrada = sys.argv[1]
 config = parser.load_config(arquivo_entrada)
 
-robozin = Robot(config.start, config.sight_range, config.charge_per_movement, config.charge_per_vacuum, config.power_station_loc)
-ambiente = Environment(config.map)
+robozin = Robot(config.start, config.sight_range, config.charge_per_movement, config.charge_per_vacuum, config.power_station_loc, max_steps=config.max_steps)
+ambiente = Environment(config.map, cell_dirt_prob=config.cell_dirt_prob, semente=config.random_seed)
 metrica = Metrics()
 metrica.celulas_sujas_iniciais = ambiente.sujeira
 
