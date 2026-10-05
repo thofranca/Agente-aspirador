@@ -124,13 +124,13 @@ class Robot:
         x_destino, y_destino = self.estacao_loc
         self.walk_to(x_destino,y_destino,ambiente,metrica, indo_carregar=True)
         self.bateria = 100
-        self.walk_to(x_inic, y_inic, ambiente, metrica)
     
-    def walk_to(self,x_destino,y_destino,ambiente,metrica, indo_carregar=False):
+    def walk_to(self,x_destino,y_destino,ambiente,metrica, indo_carregar=False, tipo="ordem"):
         while (self.x, self.y) != (x_destino, y_destino):
             if not indo_carregar and not self.tem_bateria_suf():
                 self.ir_carregar(ambiente, metrica)
-                
+                if tipo == "proximidade":
+                    return False
             if x_destino < self.x:
                 self.x -= 1
             elif x_destino > self.x:
@@ -140,6 +140,7 @@ class Robot:
             elif y_destino > self.y:
                 self.y += 1 
             self.movimento(ambiente, metrica)
+        return True
 
     def visitar_celulas_sujas(self,ambiente, metrica,tipo):
         if tipo == "ordem":
@@ -149,6 +150,7 @@ class Robot:
                 self.walk_to(x_destino,y_destino,ambiente,metrica)
                 if not self.tem_bateria_suf(aspirar=True):
                     self.ir_carregar(ambiente, metrica)
+                    self.walk_to(x_destino,y_destino,ambiente,metrica)
                 self.aspirar(ambiente, metrica)
 
         elif tipo == "proximidade":
@@ -164,11 +166,14 @@ class Robot:
                 sujeira_mais_proxima = lista_sujos_ordenada[0]
                 
                 sujeira_x, sujeira_y = sujeira_mais_proxima[1]
-                self.sujos.remove((sujeira_x, sujeira_y))
-                self.walk_to(sujeira_x,sujeira_y,ambiente,metrica)
+                chegou = self.walk_to(sujeira_x,sujeira_y,ambiente,metrica,tipo=tipo)
+                if not chegou:
+                    continue
                 if not self.tem_bateria_suf(aspirar=True):
                     self.ir_carregar(ambiente, metrica)
+                    continue
                 self.aspirar(ambiente, metrica)
+                self.sujos.remove((sujeira_x, sujeira_y))
             
 class Environment:
     def __init__(self, map):
