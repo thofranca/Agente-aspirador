@@ -227,7 +227,7 @@ class Robot:
         return False
 
     def maximo_steps(self,metrica):
-        if metrica.total_acoes >= self.maximo_movimentos:
+        if self.maximo_movimentos is not None and metrica.total_acoes >= self.maximo_movimentos:
             print("maximo de movimentos atingido")
             return True
         return False
