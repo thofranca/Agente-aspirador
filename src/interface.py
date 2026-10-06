@@ -142,12 +142,13 @@ def atualizar_interface_sync(terminado=False):
     
     tela.blit(fonte_titulo.render("Estatísticas", True, COR_DESTAQUE), (LARGURA + 20, 30))
     
-    efi = round((metrica.aspiracoes/max(1, metrica.movimentos))*100, 1)
+    # Conta a quantidade real de sujeira presente no mapa no momento
+    sujeiras_reais = sum(linha.count(1) for linha in ambiente.map)
+    
     textos = [
         f"Movimentos: {metrica.movimentos}",
         f"Aspiradas: {metrica.aspiracoes}",
-        f"Suj. Restante: {metrica.celulas_sujas_restantes}",
-        f"Eficiência: {efi}%"
+        f"Suj. Restante: {sujeiras_reais}"
     ]
     
     y_texto = 80
@@ -174,8 +175,52 @@ def atualizar_interface_sync(terminado=False):
     tela.blit(bat_texto, (LARGURA + 20 + bar_width // 2 - bat_texto.get_width() // 2, y_bateria + 30))
 
     if terminado:
-        texto_fim = fonte_titulo.render("CONCLUÍDO!", True, (50, 255, 100))
-        tela.blit(texto_fim, (LARGURA + 20, y_bateria + 70))
+        if robozin.sight_range == 0:
+            est_texto = "Passagem por todas as células (sem visão)"
+        elif globals().get('tipo_estrategia', 'proximidade') == 'ordem':
+            est_texto = "Ordem em que foram encontradas"
+        else:
+            est_texto = "Célula suja mais próxima"
+            
+        suj_reais = sum(linha.count(1) for linha in ambiente.map)
+        
+        linhas_relatorio = [
+            f"Estratégia: {est_texto}",
+            f"Movimentos realizados: {metrica.movimentos}",
+            f"Ações de aspiração: {metrica.aspiracoes}",
+            f"Total de ações: {metrica.total_acoes}",
+            f"Células inicialmente sujas: {metrica.celulas_sujas_iniciais}",
+            f"Células efetivamente limpas: {metrica.celulas_limpas}",
+            f"Células sujas restantes: {suj_reais}",
+            f"Carga restante na bateria: {int(robozin.bateria)}%",
+            f"Recargas efetuadas: {metrica.recargas}"
+        ]
+        
+        if robozin.sight_range > 0:
+            linhas_relatorio.append(f"Células únicas exploradas: {len(metrica.celulas_visitadas_exploracao)}")
+        
+        s = pygame.Surface((LARGURA + PAINEL_LATERAL, ALTURA))
+        s.set_alpha(200)
+        s.fill((10, 10, 15))
+        tela.blit(s, (0,0))
+        
+        # Limita a largura do painel para não vazar da janela se o mapa for muito pequeno
+        painel_fim_w = min(600, (LARGURA + PAINEL_LATERAL) - 20)
+        painel_fim_h = 390
+        painel_fim = pygame.Rect((LARGURA + PAINEL_LATERAL)//2 - painel_fim_w//2, ALTURA//2 - painel_fim_h//2, painel_fim_w, painel_fim_h)
+        pygame.draw.rect(tela, (40, 45, 55), painel_fim, border_radius=15)
+        pygame.draw.rect(tela, (50, 255, 100), painel_fim, 3, border_radius=15)
+        
+        titulo_fim = fonte_titulo.render("RELATÓRIO FINAL", True, (50, 255, 100))
+        tela.blit(titulo_fim, (painel_fim.centerx - titulo_fim.get_width()//2, painel_fim.y + 15))
+        
+        y_rel = painel_fim.y + 60
+        fonte_rel = pygame.font.SysFont("segoeui", 17, bold=True)
+        for linha in linhas_relatorio:
+            img = fonte_rel.render(linha, True, (240, 240, 240))
+            # Ajusta o X dinamicamente se o painel ficou espremido
+            tela.blit(img, (painel_fim.x + 20, y_rel))
+            y_rel += 30
 
     pygame.display.flip()
     
@@ -203,12 +248,86 @@ Robot.movimento = novo_movimento
 Robot.aspirar = novo_aspirar
 # -----------------------------------------------------
 
+tipo_estrategia = "proximidade" # Padrão
+
+# Janela Inicial (Menu) se sight_range > 0
+if robozin.sight_range > 0:
+    escolhendo = True
+    fonte_menu = pygame.font.SysFont("segoeui", 24, bold=True)
+    fonte_botao = pygame.font.SysFont("segoeui", 18, bold=True)
+    
+    painel_w, painel_h = 450, 260
+    painel_rect = pygame.Rect((LARGURA + PAINEL_LATERAL)//2 - painel_w//2, ALTURA//2 - painel_h//2, painel_w, painel_h)
+    
+    btn_ordem = pygame.Rect(painel_rect.centerx - 160, painel_rect.y + 100, 320, 50)
+    btn_prox = pygame.Rect(painel_rect.centerx - 160, painel_rect.y + 170, 320, 50)
+
+    while escolhendo:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit(0)
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                if btn_ordem.collidepoint(evento.pos):
+                    tipo_estrategia = "ordem"
+                    escolhendo = False
+                elif btn_prox.collidepoint(evento.pos):
+                    tipo_estrategia = "proximidade"
+                    escolhendo = False
+                
+        # Fundo e Painel
+        tela.fill((25, 25, 35))
+        pygame.draw.rect(tela, (40, 45, 55), painel_rect, border_radius=20)
+        pygame.draw.rect(tela, COR_DESTAQUE, painel_rect, 3, border_radius=20)
+        
+        titulo = fonte_menu.render("Escolha a Estratégia de Limpeza", True, (255, 255, 255))
+        tela.blit(titulo, (painel_rect.centerx - titulo.get_width()//2, painel_rect.y + 30))
+        
+        mouse_pos = pygame.mouse.get_pos()
+        
+        # Botão Ordem
+        cor_ordem = (100, 200, 255) if btn_ordem.collidepoint(mouse_pos) else (60, 130, 180)
+        pygame.draw.rect(tela, cor_ordem, btn_ordem, border_radius=10)
+        txt_ordem = fonte_botao.render("Ordem em que foram encontradas", True, (20, 20, 20))
+        tela.blit(txt_ordem, (btn_ordem.centerx - txt_ordem.get_width()//2, btn_ordem.centery - txt_ordem.get_height()//2))
+
+        # Botão Proximidade
+        cor_prox = (100, 200, 255) if btn_prox.collidepoint(mouse_pos) else (60, 130, 180)
+        pygame.draw.rect(tela, cor_prox, btn_prox, border_radius=10)
+        txt_prox = fonte_botao.render("Sempre a sujeira mais próxima", True, (20, 20, 20))
+        tela.blit(txt_prox, (btn_prox.centerx - txt_prox.get_width()//2, btn_prox.centery - txt_prox.get_height()//2))
+
+        pygame.display.flip()
+
 # Mostra o estado inicial antes de começar
 atualizar_interface_sync(False)
 
 # Chama a função principal que faz o processo inteiro (mapeamento + limpeza)!
 # A interface vai se atualizar sozinha graças à interceptação acima.
-robozin.limpeza(ambiente, metrica, "proximidade")
+robozin.limpeza(ambiente, metrica, tipo_estrategia)
+
+# Exibe as informações finais no terminal
+if robozin.sight_range == 0:
+    nome_estrategia = "Passagem por todas as células (Busca às cegas)"
+elif tipo_estrategia == "ordem":
+    nome_estrategia = "Ordem em que foram encontradas"
+else:
+    nome_estrategia = "Célula suja mais próxima"
+
+sujeiras_reais_restantes = sum(linha.count(1) for linha in ambiente.map)
+
+print(f"\nEstrategia: {nome_estrategia}")
+print(f"número de movimentos realizados: {metrica.movimentos}")
+print(f"número de ações de aspiração realizadas: {metrica.aspiracoes}")
+print(f"número total de ações: {metrica.total_acoes}")
+print(f"quantidade de células inicialmente sujas: {metrica.celulas_sujas_iniciais}")
+print(f"quantidade de células efetivamente limpas: {metrica.celulas_limpas}")
+print(f"quantidade de células sujas restantes: {sujeiras_reais_restantes}")
+print(f"carga restante na bateria: {robozin.bateria}")
+print(f"número de recargas efetuadas: {metrica.recargas}")
+if robozin.sight_range > 0:
+    print(f"número de células únicas visitadas na exploração: {len(metrica.celulas_visitadas_exploracao)}")
+print("")
 
 # Quando terminar, fica num loop infinito para não fechar a janela direto
 while True:

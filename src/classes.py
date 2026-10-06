@@ -127,6 +127,8 @@ class Robot:
         if self.sight_range == 0:
             return self.limpeza_cega(ambiente, metrica)
             
+        metrica.celulas_visitadas_exploracao.add((self.x, self.y))
+        
         while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
             if self.maximo_steps(metrica):
                 return False
@@ -143,6 +145,10 @@ class Robot:
              return False
         metrica.movimentos += 1
         print(f"Posição atual: ({self.x}, {self.y})")
+        
+        if not self.limpar:
+            metrica.celulas_visitadas_exploracao.add((self.x, self.y))
+            
         ambiente.nova_sujeira()
         self.visao(ambiente)
         return True
@@ -217,6 +223,7 @@ class Robot:
         x_destino, y_destino = self.estacao_loc
         self.walk_to(x_destino,y_destino,ambiente,metrica, indo_carregar=True)
         self.bateria = 100
+        metrica.recargas += 1
     
     def walk_to(self,x_destino,y_destino,ambiente,metrica, indo_carregar=False, tipo="ordem"):
         while (self.x, self.y) != (x_destino, y_destino):
@@ -457,6 +464,8 @@ class Metrics:
         self.__total_acoes = 0
         self.__celulas_sujas_iniciais = 0
         self.__celulas_limpas = 0
+        self.__recargas = 0
+        self.celulas_visitadas_exploracao = set()
 
     @property
     def movimentos(self):
@@ -495,6 +504,14 @@ class Metrics:
     def celulas_limpas(self, val):
         self.__celulas_limpas = val
     
+    @property
+    def recargas(self):
+        return self.__recargas
+        
+    @recargas.setter
+    def recargas(self, val):
+        self.__recargas = val
+        
     def celulas_sujas_restantes(self,robozin):
         return robozin.qttsujos()
 
