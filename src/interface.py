@@ -190,15 +190,14 @@ def atualizar_interface_sync(terminado=False):
 
 original_movimento = Robot.movimento
 original_aspirar = Robot.aspirar
-
 def novo_movimento(self, ambiente, metrica):
-    original_movimento(self, ambiente, metrica)
+    resultado = original_movimento(self, ambiente, metrica)
     atualizar_interface_sync(False)
-
+    return resultado
 def novo_aspirar(self, ambiente, metrica):
-    original_aspirar(self, ambiente, metrica)
+    resultado = original_aspirar(self, ambiente, metrica)
     atualizar_interface_sync(False)
-
+    return resultado
 # Aplicando os interceptadores
 Robot.movimento = novo_movimento
 Robot.aspirar = novo_aspirar
@@ -209,7 +208,7 @@ atualizar_interface_sync(False)
 
 # Chama a função principal que faz o processo inteiro (mapeamento + limpeza)!
 # A interface vai se atualizar sozinha graças à interceptação acima.
-robozin.limpeza(ambiente, metrica, "ordem")
+robozin.limpeza(ambiente, metrica, "proximidade")
 
 # Quando terminar, fica num loop infinito para não fechar a janela direto
 while True:
