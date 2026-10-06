@@ -34,7 +34,10 @@ class Robot:
 
     def ver_move(self, direction):
         return (self.x+direction[0],self.y+direction[1])
-
+    
+    def qttsujos(self):
+        return len(self.sujos)
+    
     # def pos_aleat(self,ambiente):
     #     while True:
     #         if self.x != 0:
@@ -454,7 +457,6 @@ class Metrics:
         self.__total_acoes = 0
         self.__celulas_sujas_iniciais = 0
         self.__celulas_limpas = 0
-        self.__celulas_sujas_restantes = 0
 
     @property
     def movimentos(self):
@@ -493,8 +495,7 @@ class Metrics:
     def celulas_limpas(self, val):
         self.__celulas_limpas = val
     
-    @property
-    def celulas_sujas_restantes(self):
-        return self.celulas_sujas_iniciais - self.celulas_limpas
+    def celulas_sujas_restantes(self,robozin):
+        return robozin.qttsujos()
 
     
