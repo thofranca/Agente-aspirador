@@ -73,8 +73,8 @@ def atualizar_interface_sync(terminado=False):
         for j in range(len(ambiente.map[0])):
             retangulo = pygame.Rect(j * TAMANHO_CELULA, i * TAMANHO_CELULA, TAMANHO_CELULA, TAMANHO_CELULA)
             
-            # Só revela o mapa onde o robô já observou
-            if (i, j) in robozin.observados:
+            # Só revela o mapa onde o robô já observou (ou revela tudo se for cego, pro usuário ver)
+            if robozin.sight_range == 0 or (i, j) in robozin.observados:
                 valor = ambiente.map[i][j]
                 
                 # Fundo da célula

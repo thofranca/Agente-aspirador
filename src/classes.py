@@ -78,7 +78,52 @@ class Robot:
                         if (n_x,n_y) not in ambiente.parede:
                             ambiente.parede.append((n_x,n_y))
                         
+    def limpeza_cega(self, ambiente, metrica):
+        print("LIMPANDO ÀS CEGAS EM ZIGUE-ZAGUE")
+        if self.direction is None:
+            self.direction = (1, 1)
+            
+        self.visao(ambiente)
+        
+
+        while True:
+            if self.maximo_steps(metrica):
+                return False
+                
+            if not self.tem_bateria_suf(aspirar=True):
+                self.ir_carregar(ambiente, metrica)
+                
+            if ambiente.map[self.x][self.y] == 1:
+                self.aspirar(ambiente, metrica)
+                    
+            dx, dy = self.direction
+            nx = self.x + dx
+            ny = self.y
+            
+            # Tenta andar no eixo X
+            if 0 <= nx < len(ambiente.map) and ambiente.map[nx][ny] != 9:
+                self.x = nx
+                self.movimento(ambiente, metrica)
+            else:
+                # Bateu ou fim da linha no eixo X
+                dx *= -1
+                nx = self.x
+                ny = self.y + dy
+                
+                # Dá um passo no eixo Y para ir pra próxima linha
+                if 0 <= ny < len(ambiente.map[0]) and ambiente.map[nx][ny] != 9:
+                    self.y = ny
+                    self.direction = (dx, dy)
+                    self.movimento(ambiente, metrica)
+                else:
+                    print("Fim do mapa alcançado no zigue-zague!")
+                    break
+        return True
+
     def limpeza(self, ambiente, metrica,tipo):
+        if self.sight_range == 0:
+            return self.limpeza_cega(ambiente, metrica)
+            
         while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
             if self.maximo_steps(metrica):
                 return False
