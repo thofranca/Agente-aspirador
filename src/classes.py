@@ -2,12 +2,14 @@ import random
 from collections import deque
 class Robot:
     def __init__(self, start, sight_range, cons_mov, cons_asp, estacao_loc=(0,0), max_steps=None):
+        """Inicializa as variáveis de estado do robô, sensores e restrições operacionais."""
         self.__x = start[0]
         self.__y = start[1]
         self.direction = None
         self.sight_range = sight_range
         self.observados = {}
         self.sujos = []
+        self.reexplorar = set()
         self.limpar = False
         self.bateria = 100
         self.consumo_mov = cons_mov
@@ -16,26 +18,32 @@ class Robot:
         self.maximo_movimentos = max_steps
     @property
     def x(self):
+        """Retorna a linha atual do robô."""
         return self.__x
         
     @x.setter
     def x(self, val):
+        """Define a linha e consome bateria relativa ao movimento."""
         self.__x = val
         self.bateria -= self.consumo_mov
         
     @property 
     def y(self):
+        """Retorna a coluna atual do robô."""
         return self.__y
         
     @y.setter
     def y(self, val):
+        """Define a coluna e consome bateria relativa ao movimento."""
         self.__y = val
         self.bateria -= self.consumo_mov
 
     def ver_move(self, direction):
+        """Retorna as coordenadas resultantes caso o robô ande na direção informada."""
         return (self.x+direction[0],self.y+direction[1])
     
     def qttsujos(self):
+        """Retorna a quantidade de células sujas armazenadas na memória do robô."""
         return len(self.sujos)
     
     # def pos_aleat(self,ambiente):
@@ -48,6 +56,7 @@ class Robot:
     #             break
             
     def aspirar(self, ambiente, metrica):
+        """Executa a ação de aspirar a célula atual, limpando a sujeira e consumindo bateria."""
         if self.maximo_steps(metrica):
             return False
         
@@ -67,11 +76,14 @@ class Robot:
             return True
 
     def visao(self, ambiente):
+        """Atualiza a memória interna do robô com o estado das células contidas no seu campo de visão."""
         for i in range(-self.sight_range,self.sight_range+1):
             for j in range(-self.sight_range,self.sight_range+1):
                 n_x = self.x+i
                 n_y = self.y+j
                 if 0 <= n_x < len(ambiente.map) and 0 <= n_y < len(ambiente.map[0]):
+                    if (n_x, n_y) in self.reexplorar:
+                        self.reexplorar.remove((n_x, n_y))
                     valor = ambiente.map[n_x][n_y]
                     self.observados[(n_x, n_y)] = valor
                     if valor == 1:
@@ -82,6 +94,7 @@ class Robot:
                             ambiente.parede.append((n_x,n_y))
                         
     def limpeza_cega(self, ambiente, metrica, tipo="cima-baixo"):
+        """Estratégia de limpeza com sight range = 0, ou seja, sem campo de visão, explorando o ambiente em ziguezague."""
         print(f"LIMPANDO ÀS CEGAS EM: {tipo.upper()}")
         if self.direction is None:
             self.direction = (1, 1)
@@ -138,23 +151,38 @@ class Robot:
         return True
 
     def limpeza(self, ambiente, metrica,tipo):
+        """Fluxo principal do robô: coordena a exploração completa do mapa seguida da limpeza das sujeiras encontradas."""
         if self.sight_range == 0:
             return self.limpeza_cega(ambiente, metrica, tipo)
             
         metrica.celulas_visitadas_exploracao.add((self.x, self.y))
         
-        while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]):
-            if self.maximo_steps(metrica):
+        while True:
+            while len(self.observados) < len(ambiente.map)*len(ambiente.map[0]) or len(self.reexplorar) > 0:
+                if self.maximo_steps(metrica):
+                    return False
+                if self.tem_bateria_suf():  
+                    self.varredura(ambiente,metrica)
+                else:
+                    self.ir_carregar(ambiente,metrica)
+            
+            self.limpar = True
+            if not self.visitar_celulas_sujas(ambiente, metrica, tipo):
                 return False
-            if self.tem_bateria_suf():  
-                self.varredura(ambiente,metrica)
+                
+            if ambiente.esta_limpo:
+                break
             else:
-                self.ir_carregar(ambiente,metrica)
-        self.limpar = True
-        return self.visitar_celulas_sujas(ambiente, metrica, tipo)
+                self.limpar = False
+                for pos, val in self.observados.items():
+                    if val != 9:
+                        self.reexplorar.add(pos)
+                            
+        return True
 
         
     def movimento(self, ambiente, metrica):
+        """Processa a ação de mover para a célula atual, contabilizando as métricas e atualizando a visão."""
         if self.maximo_steps(metrica):
              return False
         metrica.movimentos += 1
@@ -198,6 +226,7 @@ class Robot:
     #         self.direction = (self.direction[0]*-1,self.direction[1])
 
     def varredura(self, ambiente, metrica):
+        """Algoritmo de exploração que busca ativamente o caminho mais curto até uma área desconhecida."""
         self.visao(ambiente)
         melhor_caminho = None
         for posicao,valor in self.observados.items():
@@ -224,9 +253,12 @@ class Robot:
         return self.movimento(ambiente, metrica)
     
     def menor_distancia(self, x_destino, y_destino):
+        """Calcula a Distância de Manhattan entre a posição atual do robô e o destino."""
         return abs(x_destino - self.x) + abs(y_destino - self.y)
 
     def tem_bateria_suf(self, aspirar=False):
+        """Verifica se o robô possui bateria suficiente para continuar operando e voltar à estação. 
+        Se estiver em posição de aspiração, contará também o custo para realiza-lá."""
         custo_retorno = self.menor_distancia(self.estacao_loc[0], self.estacao_loc[1]) * self.consumo_mov
         custo_extra = self.consumo_asp if aspirar else 0
         if self.bateria >= (custo_retorno + custo_extra + 2 * self.consumo_mov):
@@ -234,12 +266,15 @@ class Robot:
         return False
 
     def ir_carregar(self,ambiente,metrica):
+        """Comanda o robô a retornar à estação base para recarregar sua bateria completamente."""
         x_destino, y_destino = self.estacao_loc
         self.walk_to(x_destino,y_destino,ambiente,metrica, indo_carregar=True)
         self.bateria = 100
         metrica.recargas += 1
     
     def walk_to(self,x_destino,y_destino,ambiente,metrica, indo_carregar=False, tipo="ordem"):
+        """Navega de forma autônoma até as coordenadas de destino passo a passo utilizando Busca em Largura (BFS). 
+        indo_carregar serve para evitar que o robô volte para carregar quando já está indo para a estação."""
         while (self.x, self.y) != (x_destino, y_destino):
             if self.maximo_steps(metrica):
                 return False
@@ -287,6 +322,7 @@ class Robot:
         # return True
 
     def visitar_celulas_sujas(self,ambiente, metrica,tipo):
+        """Coordena a limpeza das sujeiras mapeadas usando a estratégia selecionada ('ordem' ou 'proximidade')."""
         if tipo == "ordem":
             print("LIMPANDO POR ORDEM")
             while self.sujos:
@@ -313,6 +349,7 @@ class Robot:
                         if(x_destino, y_destino) in self.sujos:
                             self.sujos.remove((x_destino, y_destino))
                 self.aspirar(ambiente, metrica)
+            return True
 
         elif tipo == "proximidade":
             print("LIMPANDO POR PROXIMIDADE")
@@ -348,6 +385,7 @@ class Robot:
                 self.aspirar(ambiente, metrica)
             return True
     def pode_andar(self, ambiente, destino):
+        """Verifica se as coordenadas de destino não contêm uma parede."""
         x, y = destino
         if destino in ambiente.parede:
             print(f"Parede na frente!")
@@ -356,6 +394,7 @@ class Robot:
         return True
 
     def desviar(self, ambiente,direcao):
+        """Tenta encontrar uma rota de desvio ortogonal quando encontra um obstáculo direto."""
         direcao_x, direcao_y = direcao
         if direcao_x != 0:
             if self.pode_andar(ambiente, (self.x, self.y + 1)):
@@ -378,11 +417,14 @@ class Robot:
         return False
 
     def maximo_steps(self,metrica):
+        """Verifica se o limite máximo de ações definido para a execução foi atingido."""
         if self.maximo_movimentos is not None and metrica.total_acoes >= self.maximo_movimentos:
             print("maximo de movimentos atingido")
             return True
         return False
+
     def bfs(self,ambiente, destino):
+        """Implementação do algoritmo Busca em Largura (BFS) para encontrar o caminho mais curto até o destino."""
         origem = (self.x, self.y)
         if origem == destino:
             return[]
@@ -417,6 +459,7 @@ class Robot:
                 fila.append(novo_destino)
         return None
     def revela_nova_area(self, posicao, ambiente):
+        """Avalia se olhar a partir de uma posição revelará células desconhecidas ou pendentes de re-exploração."""
         x, y = posicao
         for i in range(-self.sight_range, self.sight_range + 1):
             for j in range(-self.sight_range, self.sight_range + 1):
@@ -424,8 +467,7 @@ class Robot:
                 n_y = y + j
 
                 if (0 <= n_x < len(ambiente.map) and 0 <= n_y < len(ambiente.map[0])):
-
-                    if (n_x, n_y) not in self.observados:
+                    if (n_x, n_y) not in self.observados or (n_x, n_y) in self.reexplorar:
                         return True
 
         return False        
@@ -433,6 +475,7 @@ class Robot:
 
 class Environment:
     def __init__(self, map, cell_dirt_prob = None, semente = None):
+        """Inicializa o mapa, contabiliza sujeiras iniciais e configura a semente do gerador aleatório."""
         self.map = map
         self.__sujeiras_inicio = 0
         self.__parede = []
@@ -445,6 +488,7 @@ class Environment:
 
     @property 
     def parede(self):
+        """Retorna uma lista contendo as bordas (paredes invisíveis) que limitam a grade do mapa."""
         if not self.__parede:
             map = self.map
             for i in range(len(map)):
@@ -457,9 +501,11 @@ class Environment:
 
     @property
     def sujeira(self):
+        """Retorna a contagem exata de sujeiras presentes no mapa no momento de sua criação."""
         return self.__sujeiras_inicio
     
     def nova_sujeira(self):
+        """Gera aleatoriamente uma nova sujeira em uma célula vazia do mapa baseada na probabilidade."""
         if self.probabilidade_sujeira is not None:
             if random.random() < self.probabilidade_sujeira:    
                 while True:
@@ -470,9 +516,15 @@ class Environment:
                         print(f"Nova sujeira gerada na posição ({x}, {y})")
                         break
 
-            
+    @property
+    def esta_limpo(self):
+        """Avalia o mapa inteiro e retorna True se todas as sujeiras (células iguais a 1) foram removidas.
+        Serve para garantir que o programa continuará enquanto houver movimentos disponíveis."""
+        return sum(linha.count(1) for linha in self.map) == 0
+
 class Metrics:
     def __init__(self):
+        """Inicializa os contadores para movimentos, aspirações, recargas e células visitadas/sujas."""
         self.__movimentos = 0
         self.__aspiracoes = 0
         self.__total_acoes = 0
@@ -527,6 +579,7 @@ class Metrics:
         self.__recargas = val
         
     def celulas_sujas_restantes(self,robozin):
+        """Retorna quantas sujeiras o robô ainda sabe que precisam ser limpas em sua memória."""
         return robozin.qttsujos()
 
     
