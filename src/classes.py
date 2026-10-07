@@ -86,7 +86,7 @@ class Robot:
         if self.direction is None:
             self.direction = (1, 1)
             
-        self.visao(ambiente)
+        self.visao(ambiente,metrica)
         
         while True:
             if self.maximo_steps(metrica):
