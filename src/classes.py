@@ -76,6 +76,7 @@ class Robot:
             return True
 
     def visao(self, ambiente):
+        """Visualiza as celulas ao redor de acordo com o raio da camera, salva as celulas sujas e os locais que possuem obstaculos"""
         for i in range(-self.sight_range,self.sight_range+1):
             for j in range(-self.sight_range,self.sight_range+1):
                 n_x = self.x+i
@@ -150,7 +151,7 @@ class Robot:
         return True
 
     def limpeza(self, ambiente, metrica,tipo):
-        """Fluxo principal do robô: coordena a exploração completa do mapa seguida da limpeza das sujeiras encontradas."""
+        """Fluxo principal do robô coordena a exploração completa do mapa seguida da limpeza das sujeiras encontradas"""
         if self.sight_range == 0:
             return self.limpeza_cega(ambiente, metrica, tipo)
             
@@ -181,7 +182,7 @@ class Robot:
 
         
     def movimento(self, ambiente, metrica):
-        """Processa a ação de mover para a célula atual, contabilizando as métricas e atualizando a visão."""
+        """Processa a ação de mover para a célula atual contabilizando as métricas e atualizando a visão."""
         if self.maximo_steps(metrica):
              return False
         metrica.movimentos += 1
@@ -391,27 +392,27 @@ class Robot:
         
         return True
 
-    def desviar(self, ambiente,direcao):
-        direcao_x, direcao_y = direcao
-        if direcao_x != 0:
-            if self.pode_andar(ambiente, (self.x, self.y + 1)):
-                self.y += 1
-                print("parede desviada")
-                return True
-            elif self.pode_andar(ambiente, (self.x, self.y - 1)):
-                self.y -= 1
-                print("parede desviada")
-                return True
-        elif direcao_y != 0:
-            if self.pode_andar(ambiente, (self.x + 1, self.y)):
-                self.x += 1
-                print("parede desviada")
-                return True
-            elif self.pode_andar(ambiente, (self.x - 1, self.y)):
-                self.x -= 1
-                print("parede desviada")
-                return True
-        return False
+    # def desviar(self, ambiente,direcao):
+    #     direcao_x, direcao_y = direcao
+    #     if direcao_x != 0:
+    #         if self.pode_andar(ambiente, (self.x, self.y + 1)):
+    #             self.y += 1
+    #             print("parede desviada")
+    #             return True
+    #         elif self.pode_andar(ambiente, (self.x, self.y - 1)):
+    #             self.y -= 1
+    #             print("parede desviada")
+    #             return True
+    #     elif direcao_y != 0:
+    #         if self.pode_andar(ambiente, (self.x + 1, self.y)):
+    #             self.x += 1
+    #             print("parede desviada")
+    #             return True
+    #         elif self.pode_andar(ambiente, (self.x - 1, self.y)):
+    #             self.x -= 1
+    #             print("parede desviada")
+    #             return True
+    #     return False
 
     def maximo_steps(self,metrica):
         """Verifica se o limite máximo de ações definido para a execução foi atingido."""
@@ -456,7 +457,7 @@ class Robot:
                 fila.append(novo_destino)
         return None
     def revela_nova_area(self, posicao, ambiente):
-        """Avalia se olhar a partir de uma posição revelará células desconhecidas ou pendentes de re-exploração."""
+        """Avalia se olhar a partir de uma posição revelará células desconhecidas ou pendentes de reexploração."""
         x, y = posicao
         for i in range(-self.sight_range, self.sight_range + 1):
             for j in range(-self.sight_range, self.sight_range + 1):
@@ -472,7 +473,7 @@ class Robot:
 
 class Environment:
     def __init__(self, map, cell_dirt_prob = None, semente = None):
-        """Inicializa o mapa, contabiliza sujeiras iniciais e configura a semente do gerador aleatório."""
+        """Inicializa o mapa contabiliza sujeiras iniciais e configura a semente do gerador aleatório."""
         self.map = map
         self.__sujeiras_inicio = 0
         self.__parede = []
