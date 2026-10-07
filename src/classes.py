@@ -191,7 +191,7 @@ class Robot:
             metrica.celulas_visitadas_exploracao.add((self.x, self.y))
             
         ambiente.nova_sujeira()
-        self.visao(ambiente,metrica)
+        self.visao(ambiente)
         return True
     # def varredura(self,ambiente,metrica):      
     #     if self.direction is None:
