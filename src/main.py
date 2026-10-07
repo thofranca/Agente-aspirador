@@ -31,15 +31,11 @@ if __name__ == '__main__':
     metrica = Metrics()
     metrica.celulas_sujas_iniciais = ambiente.sujeira
 
-    #I.A.
-    # Carrega e vincula a interface visual antes de executar a limpeza
     import interface
     tipo_estrategia, atualizar_gui = interface.iniciar_gui(robozin, ambiente, metrica)
     
     robozin.limpeza(ambiente, metrica, tipo_estrategia)
     
-    #I.A.
-    # Prepara e imprime os resultados rigorosamente como requisitado
     if robozin.sight_range == 0:
         if tipo_estrategia == "cima-baixo":
             nome_estrategia = "Cima-Baixo (Busca às cegas)"
@@ -66,8 +62,6 @@ if __name__ == '__main__':
         print(f"número de células únicas visitadas na exploração: {len(metrica.celulas_visitadas_exploracao)}")
     print("")
     
-    #I.A.
-    # Mantém a janela gráfica aberta com o painel final
     try:
         while True:
             atualizar_gui(True)
