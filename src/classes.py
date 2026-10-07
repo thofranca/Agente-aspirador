@@ -66,7 +66,7 @@ class Robot:
 
             return True
 
-    def visao(self, ambiente):
+    def visao(self, ambiente,metrica):
         for i in range(-self.sight_range,self.sight_range+1):
             for j in range(-self.sight_range,self.sight_range+1):
                 n_x = self.x+i
@@ -86,7 +86,7 @@ class Robot:
         if self.direction is None:
             self.direction = (1, 1)
             
-        self.visao(ambiente)
+        self.visao(ambiente,metrica)
         
 
         while True:
@@ -103,12 +103,10 @@ class Robot:
             nx = self.x + dx
             ny = self.y
             
-            # Tenta andar no eixo X
             if 0 <= nx < len(ambiente.map) and ambiente.map[nx][ny] != 9:
                 self.x = nx
                 self.movimento(ambiente, metrica)
             else:
-                # Bateu ou fim da linha no eixo X
                 dx *= -1
                 nx = self.x
                 ny = self.y + dy
@@ -144,7 +142,7 @@ class Robot:
         metrica.movimentos += 1
         print(f"Posição atual: ({self.x}, {self.y})")
         ambiente.nova_sujeira()
-        self.visao(ambiente)
+        self.visao(ambiente,metrica)
         return True
     # def varredura(self,ambiente,metrica):      
     #     if self.direction is None:
@@ -178,7 +176,7 @@ class Robot:
     #         self.direction = (self.direction[0]*-1,self.direction[1])
 
     def varredura(self, ambiente, metrica):
-        self.visao(ambiente)
+        self.visao(ambiente,metrica)
         melhor_caminho = None
         for posicao,valor in self.observados.items():
             if valor ==9:
@@ -334,27 +332,27 @@ class Robot:
         
         return True
 
-    def desviar(self, ambiente,direcao):
-        direcao_x, direcao_y = direcao
-        if direcao_x != 0:
-            if self.pode_andar(ambiente, (self.x, self.y + 1)):
-                self.y += 1
-                print("parede desviada")
-                return True
-            elif self.pode_andar(ambiente, (self.x, self.y - 1)):
-                self.y -= 1
-                print("parede desviada")
-                return True
-        elif direcao_y != 0:
-            if self.pode_andar(ambiente, (self.x + 1, self.y)):
-                self.x += 1
-                print("parede desviada")
-                return True
-            elif self.pode_andar(ambiente, (self.x - 1, self.y)):
-                self.x -= 1
-                print("parede desviada")
-                return True
-        return False
+    # def desviar(self, ambiente,direcao):
+    #     direcao_x, direcao_y = direcao
+    #     if direcao_x != 0:
+    #         if self.pode_andar(ambiente, (self.x, self.y + 1)):
+    #             self.y += 1
+    #             print("parede desviada")
+    #             return True
+    #         elif self.pode_andar(ambiente, (self.x, self.y - 1)):
+    #             self.y -= 1
+    #             print("parede desviada")
+    #             return True
+    #     elif direcao_y != 0:
+    #         if self.pode_andar(ambiente, (self.x + 1, self.y)):
+    #             self.x += 1
+    #             print("parede desviada")
+    #             return True
+    #         elif self.pode_andar(ambiente, (self.x - 1, self.y)):
+    #             self.x -= 1
+    #             print("parede desviada")
+    #             return True
+    #     return False
 
     def maximo_steps(self,metrica):
         if self.maximo_movimentos is not None and metrica.total_acoes >= self.maximo_movimentos:
