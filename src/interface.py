@@ -29,18 +29,6 @@ def iniciar_gui(robozin, ambiente, metrica):
     fonte = pygame.font.SysFont("segoeui", 18, bold=True)
     fonte_titulo = pygame.font.SysFont("segoeui", 24, bold=True)
 
-    random.seed(42)
-    sujeiras_particulas = {}
-    for i in range(len(ambiente.map)):
-        for j in range(len(ambiente.map[0])):
-            if ambiente.map[i][j] == 1:
-                particulas = []
-                for _ in range(random.randint(4, 7)):
-                    ox = random.randint(-15, 15)
-                    oy = random.randint(-15, 15)
-                    r = random.randint(2, 5)
-                    particulas.append((ox, oy, r))
-                sujeiras_particulas[(i, j)] = particulas
 
     estado = {'terminado': False, 'tipo_estrategia': "proximidade"}
 
@@ -66,11 +54,30 @@ def iniciar_gui(robozin, ambiente, metrica):
                         pygame.draw.rect(tela, COR_CHAO, retangulo)
                         pygame.draw.rect(tela, COR_LINHA, retangulo, 1)
 
-                    if valor == 1 and (i, j) in sujeiras_particulas:
-                        for ox, oy, raio in sujeiras_particulas[(i, j)]:
+                    if valor == 1:
+                        # Geração determinística de partículas espalhadas para parecer poeira
+                        # Usamos as coordenadas (i, j) para criar uma variação visual estrita sem usar 'random'
+                        pseudo_val = (i * 73856093 ^ j * 19349663)
+                        num_particles = 6 + (pseudo_val % 4)
+                        
+                        for p in range(num_particles):
+                            # Extraindo offsets e raio a partir do pseudo_val
+                            ox = ((pseudo_val >> (p * 4)) % 30) - 15
+                            oy = ((pseudo_val >> (p * 4 + 2)) % 30) - 15
+                            r = ((pseudo_val >> (p * 2)) % 3) + 1  # raio de 1 a 3 para parecer poeira fina
+                            
+                            # Pequena variação na cor para dar textura
+                            cor_variacao = ((pseudo_val >> (p * 3)) % 40) - 20
+                            cor_particula = (
+                                max(0, min(255, COR_SUJEIRA[0] + cor_variacao)),
+                                max(0, min(255, COR_SUJEIRA[1] + cor_variacao)),
+                                max(0, min(255, COR_SUJEIRA[2] + cor_variacao))
+                            )
+                            
                             cx = retangulo.centerx + ox
                             cy = retangulo.centery + oy
-                            pygame.draw.circle(tela, COR_SUJEIRA, (cx, cy), raio)
+                            pygame.draw.circle(tela, cor_particula, (cx, cy), r)
+
 
         # --- DESENHA A ESTAÇÃO ---
         ex, ey = robozin.estacao_loc
